@@ -1,0 +1,99 @@
+###############################################################################
+#
+# made by Marshaw
+#
+# 看看每个月份的btc报酬率，哪一个月涨的概率最大，哪一个月的波动最小
+#
+# 已更新完成，更新日期：13/12/2023
+#
+###############################################################################
+# 加载所需的库
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+
+# 读取数据
+# 请替换下面的路径为您的CSV文件路径
+rawdata1 <- read.csv('/Users/marshaw/Downloads/archive/1 Bitcoin.csv')
+rawdata2 <- read.csv('/Users/marshaw/Downloads/archive/Bitcoin (April-October 2023).csv')
+rawdata2 <- rawdata2[12:nrow(rawdata2),]
+bitcoin_data <- rbind(rawdata1, rawdata2)
+rm(rawdata2)
+# 将日期字符串转换为日期类型
+bitcoin_data$Date <- as.Date(bitcoin_data$Date)
+
+# 创建年份和月份列
+bitcoin_data$Year <- year(bitcoin_data$Date)
+bitcoin_data$Month <- month(bitcoin_data$Date)
+
+# 计算每个月的平均报酬率
+sameyear_return_data <- NULL 
+for (i in 1:length(data_list)) {
+  tem <- data_list[[i]]
+  temlist <- split(tem, f = tem$Year)
+  for (j in 1:length(temlist)) {
+    tem1 <- temlist[[j]]
+    sumtem <- sum(tem1$.)
+    temdata <- cbind(tem1[1,c(1,2)], sumtem)
+    sameyear_return_data <- rbind(sameyear_return_data, temdata)
+  }
+}
+sameyear_return_data <- sameyear_return_data[order(sameyear_return_data$Year),]
+#bitcoin_data <- cbind(bitcoin_data, monthly_return)
+
+fullyear_data <- sameyear_return_data[c(4:99),]
+# 绘制折线图
+ggplot(fullyear_data, aes(x = Month, y = sumtem, group = Year, color = as.factor(Year))) +
+  geom_line() +
+  labs(title = "Average Monthly Returns of Bitcoin by Year",
+       x = "Month", y = "Average Monthly Return") +
+  theme_minimal() + theme(legend.position = "bottom")
+scale_x_continuous(breaks = 1:12)
+
+return_table <- NULL
+return_list <- split(fullyear_data, f = fullyear_data$Year)
+for (i in 1:length(return_list)) {
+  tem <- return_list[[i]]
+  year <- tem[1,1]
+  month <- tem[,2] %>% t()
+  return <- tem[,3] %>% t() %>% as.data.frame()
+  colnames(return) <- month
+  rownames(return) <- year
+  return_table <- rbind(return_table, return)
+}
+rnames <- rownames(return_table) %>% as.data.frame()
+return_table <- cbind(rnames,return_table)
+
+# Assuming return_table is already created by your script
+
+# Install and load required library for reshaping data
+if (!requireNamespace("reshape2", quietly = TRUE)) {
+  install.packages("reshape2")
+}
+library(reshape2)
+
+# Transforming the data to a long format
+long_format <- melt(return_table, id.vars = "rnames", variable.name = "Month", value.name = "Return")
+
+# Convert month numbers to names for better readability
+long_format$Month <- month.abb[as.numeric(long_format$Month)]
+
+# Creating the heatmap
+ggplot(long_format, aes(x = Month, y = rnames, fill = Return)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(min(long_format$Return), max(long_format$Return))) +
+  labs(title = "Heatmap of Average Monthly Returns of Bitcoin", x = "Month", y = "Year", fill = "Return") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+
+
+
+
+
+
+
+
